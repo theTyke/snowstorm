@@ -61,15 +61,23 @@ snapshot archive to be loaded into a terminology server.
 
 Subontology packages are like edition packages in that they contain (some of) the International Edition. There are two alternative options for loading these into 
 Snowstorm.
-- To host the subontology and nothing else: 
+
+### Option A - Host a subontology and no other SNOMED CT content
+This approach is suited to those wanting to try SNOMED CT via the IPS ontology. No SNOMED CT licence is needed.
+
+Steps:
   - Simply start with an empty Snowstorm instance and load the snapshot onto the MAIN branch.
-- Alternatively, to host a subontology alongside other content: 
+
+### Option B - Host a subontology alongside other content
+This approach is suited to those who already have a Snowstorm instance with content loaded.
+A subontolgy may be added for a number of reasons including hosting a browser for a clinical reference or research group.
+
+Steps:
   - Apply the admin technical-fix `CREATE_EMPTY_2000_VERSION` to create a blank version of the root code system, with effective time 20000101.
   - Create a new code system for the subontology using 20000101 as the `dependantVersionEffectiveTime`.
     - For example: code system short name `SNOMEDCT-IPS`, branch path `MAIN/SNOMEDCT-IPS`.
   - Load the snapshot into the branch of the new code system.
   - No content will be inherited from the root code system because the subontology code system is dependant on a version of the root code system that has no content.
-
 
 ## Stopping After Loading
 
