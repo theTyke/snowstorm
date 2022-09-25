@@ -26,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.data.elasticsearch.core.ElasticsearchRestTemplate;
 import org.springframework.data.elasticsearch.core.SearchAfterPageRequest;
+import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQuery;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
 import org.springframework.data.util.Pair;
@@ -83,7 +84,9 @@ public class FHIRValueSetService {
 		NativeSearchQuery searchQuery = new NativeSearchQueryBuilder()
 				.withPageable(pageable)
 				.build();
-		return toPage(elasticsearchTemplate.search(searchQuery, FHIRValueSet.class), pageable);
+		searchQuery.setTrackTotalHits(true);
+		SearchHits<FHIRValueSet> search = elasticsearchTemplate.search(searchQuery, FHIRValueSet.class);
+		return toPage(search, pageable);
 	}
 
 	public Optional<FHIRValueSet> findByUrl(String url) {
@@ -541,6 +544,7 @@ public class FHIRValueSetService {
 			FHIRValueSet valueSet = new FHIRValueSet();
 			valueSet.setUrl(url);
 			valueSet.setCompose(compose);
+			valueSet.setStatus(Enumerations.PublicationStatus.ACTIVE.toCode());
 			hapiValueSet = valueSet.getHapi();
 		} else if (hapiValueSet == null) {
 			hapiValueSet = findByUrl(url).map(FHIRValueSet::getHapi).orElse(null);
@@ -762,6 +766,7 @@ public class FHIRValueSetService {
 		FHIRValueSet valueSet = new FHIRValueSet();
 		valueSet.setUrl(url);
 		valueSet.setCompose(compose);
+		valueSet.setStatus(Enumerations.PublicationStatus.ACTIVE.toCode());
 		return valueSet.getHapi();
 	}
 

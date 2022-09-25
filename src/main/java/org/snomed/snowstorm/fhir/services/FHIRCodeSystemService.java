@@ -58,7 +58,7 @@ public class FHIRCodeSystemService {
 		}
 
 		wrap(fhirCodeSystemVersion);
-		logger.info("Saving fhir code system '{}'.", fhirCodeSystemVersion.getId());
+		logger.debug("Saving fhir code system '{}'.", fhirCodeSystemVersion.getId());
 		codeSystemRepository.save(fhirCodeSystemVersion);
 		return fhirCodeSystemVersion;
 	}
@@ -170,6 +170,14 @@ public class FHIRCodeSystemService {
 
 	public Optional<FHIRCodeSystemVersion> findById(String id) {
 		return codeSystemRepository.findById(id);
+	}
+
+	public void deleteCodeSystemVersion(String idWithVersion) {
+		Optional<FHIRCodeSystemVersion> version = codeSystemRepository.findById(idWithVersion);
+		if (version.isPresent()) {
+			conceptService.deleteExistingCodes(idWithVersion);
+			codeSystemRepository.deleteById(idWithVersion);
+		}
 	}
 
 	public ConceptAndSystemResult findSnomedConcept(String code, List<LanguageDialect> languageDialects, FHIRCodeSystemVersionParams codeSystemParams) {
