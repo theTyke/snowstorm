@@ -176,8 +176,7 @@ public class SSubExpressionConstraint extends SubExpressionConstraint implements
 	@Override
 	public void addCriteria(RefinementBuilder refinementBuilder, Consumer<List<Long>> filteredOrSupplementedContentCallback, boolean triedCache) {
 		BoolQuery.Builder query = refinementBuilder.getQueryBuilder();
-
-		if (operator == Operator.memberOf || isAnyFiltersOrSupplements() || isNestedExpressionConstraintMemberOfQuery()) {
+		if (isAnyFiltersOrSupplements()) {
 			// Fetching required
 
 			ECLContentService eclContentService = refinementBuilder.getEclContentService();
@@ -278,10 +277,7 @@ public class SSubExpressionConstraint extends SubExpressionConstraint implements
 
 		} else if (operator == Operator.memberOf) {
 			// Member of wildcard (any reference set)
-			Set<Long> conceptIdsInReferenceSet = refinementBuilder.getEclContentService()
-					.findConceptIdsInReferenceSet(null, getMemberFilterConstraints(), refinementBuilder);
-			queryBuilder.must(termsQuery(QueryConcept.Fields.CONCEPT_ID, conceptIdsInReferenceSet));
-			return conceptIdsInReferenceSet;
+			queryBuilder.must(existsQuery(QueryConcept.Fields.REFSETS));
 		} else if (operator == Operator.descendantof || operator == Operator.childof) {
 			// Descendant of wildcard / Child of wildcard = anything but root
 			queryBuilder.mustNot(termQuery(QueryConcept.Fields.CONCEPT_ID, Concepts.SNOMEDCT_ROOT));
@@ -343,12 +339,9 @@ public class SSubExpressionConstraint extends SubExpressionConstraint implements
                                     .should(termsQuery(QueryConcept.Fields.CONCEPT_ID, retrieveAllAncestors(conceptIds, branchCriteria, stated, conceptSelector)))
                                     .should(termsQuery(QueryConcept.Fields.CONCEPT_ID, conceptIds)))
                     );
-            case memberOf -> {
+            case memberOf ->
                 // ^
-                Set<Long> conceptIdsInReferenceSet = conceptSelector.findConceptIdsInReferenceSet(conceptIds, getMemberFilterConstraints(), refinementBuilder);
-                queryBuilder.filter(termsQuery(QueryConcept.Fields.CONCEPT_ID, conceptIdsInReferenceSet));
-                return conceptIdsInReferenceSet;
-            }
+				queryBuilder.must(termsQuery(QueryConcept.Fields.REFSETS, conceptIds));
         }
 		return null;
 	}
