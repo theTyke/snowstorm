@@ -184,21 +184,26 @@ public class MRCMService {
 	}
 
 	private QueryService.ConceptQueryBuilder createAttributeValuesQuery(ContentType contentType, String attributeId, String termPrefix, List<LanguageDialect> languageDialects, MRCM branchMRCM) {
-		Set<AttributeRange> attributeRanges = branchMRCM.getMandatoryAttributeRanges(attributeId, contentType);
+		AttributeRange attributeRange = null;
+		if (!Concepts.ISA.equals(attributeId)) {
+			Set<AttributeRange> attributeRanges = branchMRCM.getMandatoryAttributeRanges(attributeId, contentType);
 
-		if (attributeRanges.isEmpty()) {
-			throw new IllegalArgumentException("No MRCM Attribute Range found with Mandatory rule strength for given content type and attributeId.");
-		} else if (attributeRanges.size() > 1) {
-			logger.warn("Multiple Attribute Ranges found with Mandatory rule strength for content type {} and attribute {} : {}.",
-					contentType, attributeId, attributeRanges.stream().map(AttributeRange::getId).collect(Collectors.toSet()));
+			if (attributeRanges.isEmpty()) {
+				throw new IllegalArgumentException("No MRCM Attribute Range found with Mandatory rule strength for given content type and attributeId.");
+			} else if (attributeRanges.size() > 1) {
+				logger.warn("Multiple Attribute Ranges found with Mandatory rule strength for content type {} and attribute {} : {}.",
+						contentType, attributeId, attributeRanges.stream().map(AttributeRange::getId).collect(Collectors.toSet()));
+			}
+
+			attributeRange = attributeRanges.iterator().next();
 		}
 
-		AttributeRange attributeRange = attributeRanges.iterator().next();
-
 		QueryService.ConceptQueryBuilder conceptQuery = queryService.createQueryBuilder(Relationship.CharacteristicType.inferred)
-				.ecl(attributeRange.getRangeConstraint())
 				.resultLanguageDialects(languageDialects);
 
+		if (attributeRange != null) {
+			conceptQuery.ecl(attributeRange.getRangeConstraint());
+		}
 		if (IdentifierService.isConceptId(termPrefix)) {
 			conceptQuery.conceptIds(Collections.singleton(termPrefix));
 		} else {
