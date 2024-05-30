@@ -1,6 +1,7 @@
 package org.snomed.snowstorm.core.data.services.identifier;
 
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.snomed.snowstorm.AbstractTest;
@@ -9,6 +10,7 @@ import org.snomed.snowstorm.core.data.domain.Concept;
 import org.snomed.snowstorm.core.data.services.ConceptService;
 import org.snomed.snowstorm.core.data.services.ServiceException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -23,10 +25,17 @@ import static org.junit.Assert.assertNotEquals;
 class LocalRandomIdentifierSourceTest extends AbstractTest {
 
 	@Autowired
-	private LocalRandomIdentifierSource identifierSource;
+	private ElasticsearchOperations elasticsearchOperations;
 
 	@Autowired
 	private ConceptService conceptService;
+
+	private LocalRandomIdentifierSource identifierSource;
+
+	@BeforeEach
+	protected void setUp() {
+		identifierSource = new LocalRandomIdentifierSource(elasticsearchOperations);
+	}
 
 	@Test
 	void testReserveIds() {
