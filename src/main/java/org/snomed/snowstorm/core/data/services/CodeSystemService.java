@@ -675,9 +675,8 @@ public class CodeSystemService {
 		// Previous package = the latest version's release package
 		branchMetadata.putString(PREVIOUS_RELEASE, String.valueOf(codeSystemVersion.getEffectiveDate()));
 		branchMetadata.putString(PREVIOUS_PACKAGE, codeSystemVersion.getReleasePackage());
-
-		// Update previous dependency package if dependency is maintained
-		if (codeSystem.getDependantVersionEffectiveTime() != null) {
+		// Dependency package and previous dependency package should be updated during code system upgrade
+		if (branchMetadata.getString(DEPENDENCY_PACKAGE) == null && codeSystem.getDependantVersionEffectiveTime() != null) {
 			final Optional<CodeSystem> parentCodeSystem = findByBranchPath(PathUtil.getParentPath(branchPath));
 			if (parentCodeSystem.isEmpty()) {
 				throw new IllegalStateException("Dependant version set but parent code system not found.");
@@ -689,8 +688,11 @@ public class CodeSystemService {
 			if (Strings.isNullOrEmpty(parentCodeSystemVersion.getReleasePackage())) {
 				throw new IllegalStateException("No release package found for " + parentCodeSystemVersion);
 			}
-			branchMetadata.putString(PREVIOUS_DEPENDENCY_PACKAGE, parentCodeSystemVersion.getReleasePackage());
+			branchMetadata.putString(DEPENDENCY_PACKAGE, parentCodeSystemVersion.getReleasePackage());
 		}
+		// Set previous dependency package the same as current dependent package
+		// This config will be updated during code system upgrade
+		branchMetadata.putString(PREVIOUS_DEPENDENCY_PACKAGE, branchMetadata.getString(DEPENDENCY_PACKAGE));
 		branchService.updateMetadata(branchPath, branchMetadata);
 	}
 
