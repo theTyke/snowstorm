@@ -3,6 +3,7 @@ package org.snomed.snowstorm.fhir.services;
 
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import org.hl7.fhir.r4.model.Coding;
+import org.hl7.fhir.r4.model.ConceptMap;
 import org.hl7.fhir.r4.model.Enumerations;
 import org.hl7.fhir.r4.model.IdType;
 import org.snomed.snowstorm.core.data.domain.ConceptMini;
@@ -16,7 +17,7 @@ import org.snomed.snowstorm.fhir.domain.*;
 import org.snomed.snowstorm.fhir.pojo.FHIRCodeSystemVersionParams;
 import org.snomed.snowstorm.fhir.pojo.FHIRSnomedConceptMapConfig;
 import org.snomed.snowstorm.fhir.repositories.FHIRConceptMapRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.snomed.snowstorm.fhir.repositories.FHIRMapElementRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
@@ -43,35 +44,38 @@ public class FHIRConceptMapService {
 
 	private static final PageRequest PAGE_OF_ONE_THOUSAND = PageRequest.of(0, 1_000);
 
-	@Autowired
-	private FHIRConceptMapRepository conceptMapRepository;
-
-	@Autowired
-	private ElasticsearchOperations elasticsearchTemplate;
-
-	@Autowired
-	private FHIRCodeSystemService fhirCodeSystemService;
-
-	@Autowired
-	private ReferenceSetMemberService snomedRefsetMemberService;
-
-	@Autowired
-	private ConceptService snomedConceptService;
-
-	@Autowired
-	private FHIRConceptMapImplicitConfig implicitMapConfig;
-
-	@Autowired
-	private FHIRConceptService conceptService;
-
-	@Autowired
-	private FHIRSnomedModelTermCache snomedModelTermCache;
+	private final FHIRConceptMapRepository conceptMapRepository;
+	private final FHIRMapElementRepository mapElementRepository;
+	private final ElasticsearchOperations elasticsearchTemplate;
+	private final FHIRCodeSystemService fhirCodeSystemService;
+	private final ReferenceSetMemberService snomedRefsetMemberService;
+	private final ConceptService snomedConceptService;
+	private final FHIRConceptMapImplicitConfig implicitMapConfig;
+	private final FHIRConceptService conceptService;
+	private final FHIRSnomedModelTermCache snomedModelTermCache;
 
 	// Implicit ConceptMaps - format http://snomed.info/sct[/(module)[/version/(version)]]?fhir_cm=(sctid)
 	private List<FHIRSnomedConceptMapConfig> snomedMaps;
 
 	// Map of SNOMED CT map correlation concepts to FHIR equivalence codes - http://hl7.org/fhir/concept-map-equivalence
 	private Map<String, Enumerations.ConceptMapEquivalence> snomedCorrelationToFhirEquivalenceMap;
+
+	public FHIRConceptMapService(FHIRConceptMapRepository conceptMapRepository, FHIRMapElementRepository mapElementRepository,
+			ElasticsearchOperations elasticsearchTemplate, FHIRCodeSystemService fhirCodeSystemService,
+			ReferenceSetMemberService snomedRefsetMemberService, ConceptService snomedConceptService,
+			FHIRConceptMapImplicitConfig implicitMapConfig, FHIRConceptService conceptService,
+			FHIRSnomedModelTermCache snomedModelTermCache) {
+
+		this.conceptMapRepository = conceptMapRepository;
+		this.mapElementRepository = mapElementRepository;
+		this.elasticsearchTemplate = elasticsearchTemplate;
+		this.fhirCodeSystemService = fhirCodeSystemService;
+		this.snomedRefsetMemberService = snomedRefsetMemberService;
+		this.snomedConceptService = snomedConceptService;
+		this.implicitMapConfig = implicitMapConfig;
+		this.conceptService = conceptService;
+		this.snomedModelTermCache = snomedModelTermCache;
+	}
 
 	@PostConstruct
 	public void init() {
@@ -305,5 +309,28 @@ public class FHIRConceptMapService {
 	private <T> List<T> searchForList(NativeQueryBuilder queryBuilder, Class<T> clazz) {
 		return elasticsearchTemplate.search(queryBuilder.build(), clazz).stream()
 				.map(SearchHit::getContent).collect(Collectors.toList());
+	}
+
+	public void createOrUpdateConceptMap(ConceptMap conceptMap) {
+		FHIRConceptMap fhirConceptMap = new FHIRConceptMap(conceptMap);
+
+		// Delete existing maps with the same URL and version (could be different ID)
+		conceptMapRepository.findAllByUrl(conceptMap.getUrl()).stream()
+				.filter(otherMap -> Objects.equals(otherMap.getVersion(), conceptMap.getVersion()))
+				.forEach(this::deleteMap);
+		// Save will replace any existing map with the same id.
+		fhirConceptMap = conceptMapRepository.save(fhirConceptMap);
+		for (FHIRConceptMapGroup mapGroup : fhirConceptMap.getGroup()) {
+			// Save elements within each group
+			mapElementRepository.saveAll(mapGroup.getElement());
+		}
+	}
+
+	private void deleteMap(FHIRConceptMap otherMap) {
+		conceptMapRepository.deleteById(otherMap.getId());
+		for (FHIRConceptMapGroup fhirConceptMapGroup : otherMap.getGroup()) {
+			List<FHIRMapElement> groupElements = mapElementRepository.findAllByGroupId(fhirConceptMapGroup.getGroupId());
+			mapElementRepository.deleteAll(groupElements);
+		}
 	}
 }
