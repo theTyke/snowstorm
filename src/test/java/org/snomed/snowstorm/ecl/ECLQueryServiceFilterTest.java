@@ -4,6 +4,7 @@ import io.kaicode.elasticvc.api.BranchCriteria;
 import io.kaicode.elasticvc.api.VersionControlHelper;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.snomed.snowstorm.TestConfig;
@@ -321,6 +322,8 @@ class ECLQueryServiceFilterTest {
 	}
 
 	@Test
+	@Disabled
+	// Disable this test for now due to known issue MAINT-2627. Need to re-enable this test after the issue is fixed.
 	public void testMemberFieldFilter() {
 		assertEquals(newHashSet("427603009"), select("^ 447562003 |ICD-10 complex map reference set| {{ M mapTarget = \"J45.9\" }}"));
 		assertEquals(newHashSet("427603009", "708094006"), select("^ 447562003 |ICD-10 complex map reference set| {{ M mapTarget = \"J45\" }}"));

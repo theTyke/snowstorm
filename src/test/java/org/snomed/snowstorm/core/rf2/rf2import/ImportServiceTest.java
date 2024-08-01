@@ -833,8 +833,8 @@ class ImportServiceTest extends AbstractTest {
 		// Import a new release to the test branch
 		importService.importArchive(importJobId, releaseFileStream);
 
-		// Check that semantic index is not completely rebuilt and in this case should only be increased by 2
+		// Check that semantic index is not completely rebuilt and in this case should only be increased by 4
 		results = queryConceptRepository.findAll(PageRequest.of(0, 10));
-		assertEquals(60, results.getTotalElements());
+		assertEquals(62, results.getTotalElements());
 	}
 }

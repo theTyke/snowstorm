@@ -2428,6 +2428,7 @@ class ConceptServiceTest extends AbstractTest {
 		String carId = concept.getConceptId();
 
 		// Born inactive
+		// This scenario will not work with the feature added for MAINT-2392
 		concept = new Concept()
 				.addDescription(new Description("Motorised vehicle (vehicle)").setTypeId(FSN))
 				.addDescription(new Description("Motorised vehicle").setTypeId(SYNONYM))
@@ -2477,48 +2478,49 @@ class ConceptServiceTest extends AbstractTest {
 
 		// Assert ecl statements return same response
 		ecl = String.format("^ %s", vehiclesReferenceSetId);
-		page = queryService.search(queryService.createQueryBuilder(false).ecl(ecl), intMain, PageRequest.of(0, 50));
-		assertEquals(3, page.getTotalElements());
+		page = queryService.search(queryService.createQueryBuilder(true).ecl(ecl), intMain, PageRequest.of(0, 50));
+		assertEquals(2, page.getTotalElements());
 		conceptIds = page.getContent().stream().map(ConceptMini::getConceptId).toList();
 		assertTrue(conceptIds.contains(vehicleId));
 		assertTrue(conceptIds.contains(carId));
-		assertTrue(conceptIds.contains(motorisedVehicleId)); // Concept is inactive, but its member is not
+		// Inactive concept is not included in semantic index with MAINT-2392
+		assertFalse(conceptIds.contains(motorisedVehicleId)); // Concept is inactive, but its member is not
 
 		ecl = String.format("(^ %s)", vehiclesReferenceSetId);
-		page = queryService.search(queryService.createQueryBuilder(false).ecl(ecl), intMain, PageRequest.of(0, 50));
-		assertEquals(3, page.getTotalElements());
+		page = queryService.search(queryService.createQueryBuilder(true).ecl(ecl), intMain, PageRequest.of(0, 50));
+		assertEquals(2, page.getTotalElements());
 		conceptIds = page.getContent().stream().map(ConceptMini::getConceptId).toList();
 		assertTrue(conceptIds.contains(vehicleId));
 		assertTrue(conceptIds.contains(carId));
-		assertTrue(conceptIds.contains(motorisedVehicleId));  // Concept is inactive, but its member is not
+		assertFalse(conceptIds.contains(motorisedVehicleId));  // Concept is inactive, but its member is not
 
 		// Compound queries the second part should return no results for testing purpose only
 		// Disjunction with and without brackets
 		ecl = String.format("(^ %s) OR (<< 423857001 |Structure of half of body lateral to midsagittal plane (body structure)|)", vehiclesReferenceSetId);
-		page = queryService.search(queryService.createQueryBuilder(false).ecl(ecl), intMain, PageRequest.of(0, 50));
-		assertEquals(3, page.getTotalElements());
+		page = queryService.search(queryService.createQueryBuilder(true).ecl(ecl), intMain, PageRequest.of(0, 50));
+		assertEquals(2, page.getTotalElements());
 
 		ecl = String.format("^ %s OR << 423857001 |Structure of half of body lateral to midsagittal plane (body structure)|", vehiclesReferenceSetId);
-		page = queryService.search(queryService.createQueryBuilder(false).ecl(ecl), intMain, PageRequest.of(0, 50));
-		assertEquals(3, page.getTotalElements());
+		page = queryService.search(queryService.createQueryBuilder(true).ecl(ecl), intMain, PageRequest.of(0, 50));
+		assertEquals(2, page.getTotalElements());
 
 		// Conjunction with and without brackets
 		ecl = String.format("(^ %s) AND (<< 423857001 |Structure of half of body lateral to midsagittal plane (body structure)|)", vehiclesReferenceSetId);
-		page = queryService.search(queryService.createQueryBuilder(false).ecl(ecl), intMain, PageRequest.of(0, 50));
+		page = queryService.search(queryService.createQueryBuilder(true).ecl(ecl), intMain, PageRequest.of(0, 50));
 		assertEquals(0, page.getTotalElements());
 
 		ecl = String.format("^ %s AND << 423857001 |Structure of half of body lateral to midsagittal plane (body structure)|", vehiclesReferenceSetId);
-		page = queryService.search(queryService.createQueryBuilder(false).ecl(ecl), intMain, PageRequest.of(0, 50));
+		page = queryService.search(queryService.createQueryBuilder(true).ecl(ecl), intMain, PageRequest.of(0, 50));
 		assertEquals(0, page.getTotalElements());
 
 		// Exclusion with and without brackets
 		ecl = String.format("(^ %s) MINUS (<< 423857001 |Structure of half of body lateral to midsagittal plane (body structure)|)", vehiclesReferenceSetId);
-		page = queryService.search(queryService.createQueryBuilder(false).ecl(ecl), intMain, PageRequest.of(0, 50));
-		assertEquals(3, page.getTotalElements());
+		page = queryService.search(queryService.createQueryBuilder(true).ecl(ecl), intMain, PageRequest.of(0, 50));
+		assertEquals(2, page.getTotalElements());
 
 		ecl = String.format("^ %s MINUS << 423857001 |Structure of half of body lateral to midsagittal plane (body structure)|", vehiclesReferenceSetId);
 		page = queryService.search(queryService.createQueryBuilder(false).ecl(ecl), intMain, PageRequest.of(0, 50));
-		assertEquals(3, page.getTotalElements());
+		assertEquals(2, page.getTotalElements());
 
 
 		// Extra testings for nested expression constraints
@@ -2532,7 +2534,7 @@ class ConceptServiceTest extends AbstractTest {
 
 		ecl = String.format("^(<<%s)", vehiclesReferenceSetId);
 		page = queryService.search(queryService.createQueryBuilder(false).ecl(ecl), intMain, PageRequest.of(0, 50));
-		assertEquals(3, page.getTotalElements());
+		assertEquals(2, page.getTotalElements());
 	}
 
 	@Test
