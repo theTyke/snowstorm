@@ -14,6 +14,7 @@ import io.swagger.v3.oas.models.info.License;
 import org.ihtsdo.drools.domain.Component;
 import org.ihtsdo.drools.response.InvalidContent;
 import org.ihtsdo.sso.integration.RequestHeaderAuthenticationDecorator;
+import org.snomed.snowstorm.auth.config.AuthConfig;
 import org.snomed.snowstorm.core.data.domain.CodeSystemVersion;
 import org.snomed.snowstorm.core.data.domain.ReferenceSetType;
 import org.snomed.snowstorm.core.data.domain.classification.Classification;
@@ -44,6 +45,7 @@ import org.springframework.security.web.firewall.HttpFirewall;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.bind.annotation.GetMapping;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -71,6 +73,9 @@ public class SecurityAndUriConfig {
 
 	@Autowired(required = false)
 	private BuildProperties buildProperties;
+
+	@Autowired
+	private AuthConfig authConfig;
 
 	private final String[] excludedUrlPatterns = {
 			"/version",
@@ -195,6 +200,20 @@ public class SecurityAndUriConfig {
 					.requestMatchers(antMatcher(HttpMethod.PATCH, "/**")).denyAll()
 					.requestMatchers(antMatcher(HttpMethod.DELETE, "/**")).denyAll()
 					.anyRequest().permitAll());
+		} else if (authConfig.getAuthModeEnabled()) {
+			if (authConfig.getPublicGetEndpointsEnabled()) {
+				http.authorizeHttpRequests(auth -> auth
+						.requestMatchers(antMatchers(excludedUrlPatterns)).permitAll()
+						.requestMatchers(antMatcher(HttpMethod.POST, "/**")).authenticated()
+						.requestMatchers(antMatcher(HttpMethod.PUT, "/**")).authenticated()
+						.requestMatchers(antMatcher(HttpMethod.PATCH, "/**")).authenticated()
+						.requestMatchers(antMatcher(HttpMethod.DELETE, "/**")).authenticated()
+						.anyRequest().permitAll());
+			} else {
+				http.authorizeHttpRequests(auth -> auth
+						.requestMatchers(antMatchers(excludedUrlPatterns)).permitAll()
+						.anyRequest().authenticated());
+			}
 		} else if (rolesEnabled) {
 			http.addFilterBefore(new RequestHeaderAuthenticationDecorator(), AuthorizationFilter.class);
 			http.addFilterAt(new RequiredRoleFilter(requiredRole, excludedUrlPatterns), AuthorizationFilter.class);
@@ -245,6 +264,16 @@ public class SecurityAndUriConfig {
 				.packagesToScan("org.springframework.boot.actuate")
 				.pathsToMatch("/actuator/**")
 				.build();
+	}
+
+	private static AntPathRequestMatcher[] antMatchers(final String... patterns) {
+		final AntPathRequestMatcher[] matchers = new AntPathRequestMatcher[patterns.length];
+
+		for (int i = 0; i < patterns.length; i++) {
+			matchers[i] = antMatcher(patterns[i]);
+		}
+
+		return matchers;
 	}
 
 }
