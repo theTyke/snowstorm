@@ -2,7 +2,14 @@ package org.snomed.snowstorm.rest;
 
 import io.kaicode.rest.util.branchpathrewrite.BranchPathUriUtil;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import org.snomed.snowstorm.auth.service.ApiKeyService;
 import org.snomed.snowstorm.core.data.services.*;
 import org.snomed.snowstorm.core.data.services.traceability.TraceabilityLogBackfiller;
 import org.snomed.snowstorm.ecl.BranchVersionECLCache;
@@ -12,9 +19,13 @@ import org.snomed.snowstorm.fix.ContentFixType;
 import org.snomed.snowstorm.fix.TechnicalFixService;
 import org.snomed.snowstorm.fix.TechnicalFixType;
 import org.snomed.snowstorm.mrcm.MRCMUpdateService;
+import org.snomed.snowstorm.rest.pojo.ApiKeyDto;
+import org.snomed.snowstorm.rest.pojo.CreateApiKeyRequest;
 import org.snomed.snowstorm.rest.pojo.ResponseMessage;
 import org.snomed.snowstorm.rest.pojo.UpdatedDocumentCount;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -57,6 +68,9 @@ public class AdminController {
 
 	@Autowired
 	private ECLQueryService eclQueryService;
+
+	@Autowired
+	private ApiKeyService apiKeyService;
 
 	@Operation(summary = "Rebuild the description index.",
 			description = "Use this if the search configuration for international character handling of a language has been " +
@@ -288,6 +302,63 @@ public class AdminController {
 	@PreAuthorize("hasPermission('ADMIN', 'global')")
 	public void clearEclCache() {
 		eclQueryService.clearCache();
+	}
+
+	@Operation(summary = "Create an API Key", description = "Creates an API Key for the given unique Application and returns the created key in the response. " +
+			"This key has to be stored as it cannot be recovered or viewed again.")
+	@PostMapping(value = "/api-key")
+	@PreAuthorize("hasPermission('ADMIN', 'global')")
+	@ApiResponses( value = {
+			@ApiResponse(
+					responseCode = "200",
+					description = "API Key successfully created",
+					content = {
+							@Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = ApiKeyDto.class)
+							)
+					}
+			),
+			@ApiResponse(
+					responseCode = "401",
+					description = "Unauthorized"
+			),
+			@ApiResponse(
+					responseCode = "403",
+					description = "Forbidden"
+			),
+			@ApiResponse(
+					responseCode = "409",
+					description = "API Key already exists for Application"
+			)
+	})
+	public ResponseEntity<ApiKeyDto> createApiKey(final @NotNull @Valid CreateApiKeyRequest createApiKeyRequest) {
+		final ApiKeyDto apiKeyDto = apiKeyService.createApiKey(createApiKeyRequest.getApplication(), createApiKeyRequest.getExpiresAt());
+		return ResponseEntity.ok(apiKeyDto);
+	}
+
+	@PostMapping(value = "/api-key/{application}")
+	@ApiResponses( value = {
+			@ApiResponse(
+					responseCode = "204",
+					description = "API Key successfully deleted"
+			),
+			@ApiResponse(
+					responseCode = "401",
+					description = "Unauthorized"
+			),
+			@ApiResponse(
+					responseCode = "403",
+					description = "Forbidden"
+			),
+			@ApiResponse(
+					responseCode = "404",
+					description = "Not found"
+			)
+	})
+	public ResponseEntity<Void> deleteApiKey(final @PathVariable @NotNull String application) {
+		apiKeyService.deleteApiKey(application);
+		return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
 	}
 
 }

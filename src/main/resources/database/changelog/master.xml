@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <property name="now" value="now()" dbms="h2"/>
+    <property name="now" value="current_timestamp" dbms="postgresql"/>
+
+    <property name="uuid" value="random_uuid()" dbms="h2"/>
+    <property name="uuid" value="public.uuid_generate_v4()" dbms="postgresql"/>
+
+    <includeAll path="v10_5_0/" labels="10.5.0" relativeToChangelogFile="true" minDepth="1" maxDepth="1"/>
+
+</databaseChangeLog>

@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SignatureException;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.Optional;
 
@@ -63,14 +64,16 @@ public class ApiKeyFilter extends OncePerRequestFilter {
 
             final Optional<ApiKey> applicationKeyOpt = apiKeyRepository.findByHashedSecret(DigestUtils.sha512Hex(signedApiKey.secret()));
 
-            if (applicationKeyOpt.isPresent()) {
-                final ApiKey applicationKey = applicationKeyOpt.get();
-                final ApiKeyAuthenticationToken authenticationToken = new ApiKeyAuthenticationToken(applicationKey.getId(), Collections.emptySet(), applicationKey);
+            applicationKeyOpt.ifPresent(apiKey -> {
+                if (apiKey.getExpiresAt().isBefore(Instant.now())){
+                    throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Expired API Key");
+                }
+
+                final ApiKeyAuthenticationToken authenticationToken = new ApiKeyAuthenticationToken(apiKey.getApplication(), Collections.emptySet(), apiKey);
                 authenticationToken.setAuthenticated(true);
 
                 SecurityContextHolder.getContext().setAuthentication(authenticationToken);
-            }
-
+            });
         }
 
         filterChain.doFilter(request, response);

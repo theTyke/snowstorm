@@ -5,11 +5,10 @@ import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 
 import java.util.Collection;
-import java.util.UUID;
 
 public class ApiKeyAuthenticationToken extends AbstractAuthenticationToken {
 
-    private final UUID principal;
+    private final String principal;
 
     /**
      * Creates a token with the supplied array of authorities.
@@ -19,7 +18,7 @@ public class ApiKeyAuthenticationToken extends AbstractAuthenticationToken {
      *                    represented by this authentication object.
      * @param details the ApiKey object
      */
-    public ApiKeyAuthenticationToken(final UUID principal, final Collection<? extends GrantedAuthority> authorities, final ApiKey details) {
+    public ApiKeyAuthenticationToken(final String principal, final Collection<? extends GrantedAuthority> authorities, final ApiKey details) {
         super(authorities);
         this.principal = principal;
         this.setDetails(details);
@@ -34,7 +33,7 @@ public class ApiKeyAuthenticationToken extends AbstractAuthenticationToken {
      * @return the application name
      */
     @Override
-    public UUID getPrincipal() {
+    public String getPrincipal() {
         return principal;
     }
 

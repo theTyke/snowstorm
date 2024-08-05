@@ -12,4 +12,6 @@ public interface ApiKeyRepository extends JpaRepository<ApiKey, UUID> {
 
     Optional<ApiKey> findByHashedSecret(String hashedSecret);
 
+    Optional<ApiKey> findByApplication(String application);
+
 }

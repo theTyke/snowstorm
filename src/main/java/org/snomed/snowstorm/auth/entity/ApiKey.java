@@ -26,10 +26,14 @@ public class ApiKey {
     @Id
     private UUID id;
 
-    @Column(nullable = false, unique = true)
+
+    @Column(nullable = false, unique = true, updatable = false)
+    private String application;
+
+    @Column(nullable = false, unique = true, updatable = false)
     private String hashedSecret;
 
-    @Column
+    @Column(updatable = false)
     private Instant expiresAt;
 
     @PrePersist
